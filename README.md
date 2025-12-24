@@ -1,4 +1,4 @@
-# merge-streams
+# @bitofsky/merge-streams
 
 **When Databricks gives you 90+ presigned URLs, merge them into one.**
 
@@ -61,7 +61,7 @@ Now my MCP client gets one URL. Done.
 ## Installation
 
 ```bash
-npm install merge-streams
+npm install @bitofsky/merge-streams
 ```
 
 Requires Node.js 18+ (uses native `fetch()` and `Readable.fromWeb()`)
@@ -87,7 +87,7 @@ npm test -- test/databricks.spec.ts
 ### URL-based (for Databricks External Links)
 
 ```ts
-import { mergeStreamsFromUrls } from 'merge-streams'
+import { mergeStreamsFromUrls } from '@bitofsky/merge-streams'
 
 await mergeStreamsFromUrls('CSV', urls, outputStream)
 await mergeStreamsFromUrls('JSON_ARRAY', urls, outputStream)
@@ -109,19 +109,39 @@ controller.abort()
 
 ## Format Details
 
-| Format | Databricks name | Behavior |
-|--------|----------------|----------|
-| CSV | `CSV` | Writes header once, skips duplicate headers from subsequent chunks |
-| JSON_ARRAY | `JSON_ARRAY` | Wraps in `[]`, strips brackets from chunks, inserts commas |
-| ARROW_STREAM | `ARROW_STREAM` | Re-encodes RecordBatches into single IPC stream (not byte-concat) |
+| Format | Behavior |
+|--------|----------|
+| `CSV` | Writes header once, skips duplicate headers from subsequent chunks |
+| `JSON_ARRAY` | Wraps in `[]`, strips brackets from chunks, inserts commas |
+| `ARROW_STREAM` | Re-encodes RecordBatches into single IPC stream (not byte-concat) |
 
 ---
 
 ## Types
 
 ```ts
-type InputSource = Readable | (() => Readable) | (() => Promise<Readable>)
+import { Readable, Writable } from 'node:stream'
+
 type MergeFormat = 'ARROW_STREAM' | 'CSV' | 'JSON_ARRAY'
+type InputSource = Readable | (() => Readable) | (() => Promise<Readable>)
+
+interface MergeStreamsOptions {
+  signal?: AbortSignal
+}
+
+function mergeStreams(
+  format: MergeFormat,
+  inputs: InputSource[],
+  output: Writable,
+  options?: MergeStreamsOptions
+): Promise<void>
+
+function mergeStreamsFromUrls(
+  format: MergeFormat,
+  urls: string[],
+  output: Writable,
+  options?: MergeStreamsOptions
+): Promise<void>
 ```
 
 ---
