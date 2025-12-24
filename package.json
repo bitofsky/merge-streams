@@ -1,0 +1,57 @@
+{
+  "name": "@bitofsky/merge-streams",
+  "version": "1.0.0",
+  "description": "Merge multiple chunked streams (CSV, JSON_ARRAY, ARROW_STREAM) into one unified stream - perfect for Databricks External Links",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "stream",
+    "merge",
+    "csv",
+    "json",
+    "arrow",
+    "apache-arrow",
+    "concat",
+    "streaming",
+    "fetch"
+  ],
+  "author": "BumSeok Hwang <bitofsky@naver.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/bitofsky/merge-streams.git"
+  },
+  "homepage": "https://github.com/bitofsky/merge-streams#readme",
+  "bugs": {
+    "url": "https://github.com/bitofsky/merge-streams/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "apache-arrow": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.0"
+  }
+}
