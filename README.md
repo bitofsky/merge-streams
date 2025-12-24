@@ -64,7 +64,7 @@ Now my MCP client gets one URL. Done.
 npm install @bitofsky/merge-streams
 ```
 
-Requires Node.js 18+ (uses native `fetch()` and `Readable.fromWeb()`)
+Requires Node.js 20+ (uses native `fetch()` and `Readable.fromWeb()`)
 
 ---
 

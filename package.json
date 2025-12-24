@@ -44,7 +44,7 @@
     "url": "https://github.com/bitofsky/merge-streams/issues"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "apache-arrow": "^18.0.0"
