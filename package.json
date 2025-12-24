@@ -1,6 +1,6 @@
 {
   "name": "@bitofsky/merge-streams",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Merge multiple chunked streams (CSV, JSON_ARRAY, ARROW_STREAM) into one unified stream - perfect for Databricks External Links",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
