@@ -99,7 +99,7 @@ describe.skipIf(!DATABRICKS_TOKEN || !DATABRICKS_HOST || !DATABRICKS_HTTP_PATH)(
       const outputPath = path.join(tmpDir, 'merged.csv')
       const output = createWriteStream(outputPath)
 
-      await mergeStreamsFromUrls('CSV', urls, output)
+      await mergeStreamsFromUrls('CSV', { urls, output })
 
       const lineCount = await countLines(outputPath)
       // +1 for header
@@ -121,7 +121,7 @@ describe.skipIf(!DATABRICKS_TOKEN || !DATABRICKS_HOST || !DATABRICKS_HTTP_PATH)(
       const outputPath = path.join(tmpDir, 'merged.json')
       const output = createWriteStream(outputPath)
 
-      await mergeStreamsFromUrls('JSON_ARRAY', urls, output)
+      await mergeStreamsFromUrls('JSON_ARRAY', { urls, output })
 
       const content = await fsp.readFile(outputPath, 'utf8')
       const parsed = JSON.parse(content)
@@ -144,7 +144,7 @@ describe.skipIf(!DATABRICKS_TOKEN || !DATABRICKS_HOST || !DATABRICKS_HTTP_PATH)(
       const outputPath = path.join(tmpDir, 'merged.arrow')
       const output = createWriteStream(outputPath)
 
-      await mergeStreamsFromUrls('ARROW_STREAM', urls, output)
+      await mergeStreamsFromUrls('ARROW_STREAM', { urls, output })
 
       const stats = await fsp.stat(outputPath)
       expect(stats.size).toBeGreaterThan(0)

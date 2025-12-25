@@ -2,15 +2,7 @@ import { PassThrough } from 'node:stream'
 import { describe, it, expect } from 'vitest'
 import { mergeJson } from '../src/mergeJson.js'
 import { mergeStreamsFromUrls } from '../src/mergeStreams.js'
-import { createLocalHttpServer } from '../src/util.js'
-
-async function collectToString(stream: NodeJS.ReadableStream): Promise<string> {
-  const chunks: Buffer[] = []
-  for await (const chunk of stream as AsyncIterable<Buffer | string>) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)))
-  }
-  return Buffer.concat(chunks).toString('utf8')
-}
+import { collectToString, createLocalHttpServer } from './testUtil.js'
 
 describe('mergeJson (Readable[] -> Writable)', () => {
   it('merges json arrays from readable streams', async () => {
@@ -27,8 +19,8 @@ describe('mergeJson (Readable[] -> Writable)', () => {
       const pass = new PassThrough()
       const outPromise = collectToString(pass)
 
-      await mergeJson(
-        [
+      await mergeJson({
+        inputs: [
           async () => {
             const res = await fetch(`${baseUrl}/j0.json`)
             const { Readable } = await import('node:stream')
@@ -40,8 +32,8 @@ describe('mergeJson (Readable[] -> Writable)', () => {
             return Readable.fromWeb(res.body as any)
           },
         ],
-        pass,
-      )
+        output: pass,
+      })
 
       const out = await outPromise
       expect(JSON.parse(out)).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }])
@@ -67,7 +59,7 @@ describe('mergeStreamsFromUrls JSON_ARRAY (http URLs -> Writable)', () => {
       const pass = new PassThrough()
       const outPromise = collectToString(pass)
 
-      await mergeStreamsFromUrls('JSON_ARRAY', urls, pass)
+      await mergeStreamsFromUrls('JSON_ARRAY', { urls, output: pass })
 
       const out = await outPromise
       expect(JSON.parse(out)).toEqual([
@@ -95,7 +87,7 @@ describe('mergeStreamsFromUrls JSON_ARRAY (http URLs -> Writable)', () => {
       const pass = new PassThrough()
       const outPromise = collectToString(pass)
 
-      await mergeStreamsFromUrls('JSON_ARRAY', urls, pass)
+      await mergeStreamsFromUrls('JSON_ARRAY', { urls, output: pass })
 
       const out = await outPromise
       expect(JSON.parse(out)).toEqual([1, 2])
@@ -106,7 +98,7 @@ describe('mergeStreamsFromUrls JSON_ARRAY (http URLs -> Writable)', () => {
 
   it('rejects non-http inputs', async () => {
     const pass = new PassThrough()
-    await expect(mergeStreamsFromUrls('JSON_ARRAY', ['file:///tmp/a.json'], pass)).rejects.toThrow(
+    await expect(mergeStreamsFromUrls('JSON_ARRAY', { urls: ['file:///tmp/a.json'], output: pass })).rejects.toThrow(
       /Expected http\(s\) URL/,
     )
   })
