@@ -1,5 +1,11 @@
 # @bitofsky/merge-streams
 
+[![npm version](https://img.shields.io/npm/v/@bitofsky/merge-streams.svg)](https://www.npmjs.com/package/@bitofsky/merge-streams)
+[![npm downloads](https://img.shields.io/npm/dm/@bitofsky/merge-streams.svg)](https://www.npmjs.com/package/@bitofsky/merge-streams)
+[![license](https://img.shields.io/npm/l/@bitofsky/merge-streams.svg)](https://github.com/bitofsky/merge-streams/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/@bitofsky/merge-streams.svg)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+
 **When Databricks gives you 90+ presigned URLs, merge them into one.**
 
 > *Because nobody wants to explain to their MCP client why it needs to juggle dozens of chunk URLs.*
