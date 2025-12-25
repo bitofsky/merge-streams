@@ -1,9 +1,5 @@
 // Types
-export type {
-  InputSource,
-  MergeFormat,
-  MergeOptions,
-} from './types.js'
+export type * from './types.js'
 
 // Core merge functions (stream-based)
 export { mergeArrow } from './mergeArrow.js'
