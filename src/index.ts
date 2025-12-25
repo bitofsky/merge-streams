@@ -1,16 +1,17 @@
+// Types
+export type {
+  InputSource,
+  MergeFormat,
+  MergeOptions,
+} from './types.js'
+
 // Core merge functions (stream-based)
-export { mergeArrow, type MergeArrowOptions } from './mergeArrow.js'
-export { mergeCsv, type MergeCsvOptions } from './mergeCsv.js'
-export { mergeJson, type MergeJsonOptions } from './mergeJson.js'
+export { mergeArrow } from './mergeArrow.js'
+export { mergeCsv } from './mergeCsv.js'
+export { mergeJson } from './mergeJson.js'
 
 // Unified API
-export {
-  mergeStreams,
-  mergeStreamsFromUrls,
-  type MergeFormat,
-  type MergeStreamsOptions,
-  type InputSource,
-} from './mergeStreams.js'
+export { mergeStreams, mergeStreamsFromUrls } from './mergeStreams.js'
 
 // Utilities
-export { createLocalHttpServer, openUrlAsReadable, isHttpUrl } from './util.js'
+export { openUrlAsReadable, isHttpUrl } from './util.js'

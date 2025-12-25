@@ -1,14 +1,7 @@
+import type { MergeOptions } from './types.js'
 import { pipeline } from 'node:stream/promises'
-import { Writable } from 'node:stream'
 import { RecordBatchReader, RecordBatchStreamWriter } from 'apache-arrow'
-import {
-  type InputSource,
-  resolveInputStream,
-} from './util.js'
-
-export interface MergeArrowOptions {
-  signal?: AbortSignal
-}
+import { assertNonEmptyArray, resolveInputStream, throwIfAborted } from './util.js'
 
 /**
  * Merge multiple Apache Arrow IPC streams into one IPC stream.
@@ -20,18 +13,9 @@ export interface MergeArrowOptions {
  * Notes:
  * - This does NOT byte-concatenate inputs (consumers usually stop at first EOS).
  * - Assumes all input streams have identical schema.
- *
- * @param inputs - Array of Readable streams or factory functions that return Readable streams
- * @param output - Writable stream for the merged output
- * @param options - Optional settings (e.g., AbortSignal)
  */
-export async function mergeArrow(
-  inputs: InputSource[],
-  output: Writable,
-  options: MergeArrowOptions = {},
-): Promise<void> {
-  if (!Array.isArray(inputs) || inputs.length === 0)
-    throw new Error('[mergeArrow] inputs must be a non-empty array')
+export async function mergeArrow({ inputs, output, signal }: MergeOptions): Promise<void> {
+  assertNonEmptyArray(inputs, 'mergeArrow')
 
   const writer = new RecordBatchStreamWriter({ autoDestroy: true })
   const encoded = writer.toNodeStream({ objectMode: false })
@@ -39,7 +23,9 @@ export async function mergeArrow(
 
   async function* batches() {
     for (let i = 0; i < inputs.length; i += 1) {
-      const src = await resolveInputStream(inputs[i])
+      throwIfAborted(signal, 'mergeArrow')
+      const input = inputs[i]!
+      const src = await resolveInputStream(input)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reader = await RecordBatchReader.from(src as any)
@@ -49,6 +35,7 @@ export async function mergeArrow(
         throw new Error('[mergeArrow] Reader is not async-iterable')
 
       while (true) {
+        throwIfAborted(signal, 'mergeArrow')
         const next = await it.next()
 
         if (next.done) break
@@ -77,4 +64,3 @@ export async function mergeArrow(
     throw e
   }
 }
-

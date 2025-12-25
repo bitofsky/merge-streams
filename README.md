@@ -89,21 +89,44 @@ npm test -- test/databricks.spec.ts
 ```ts
 import { mergeStreamsFromUrls } from '@bitofsky/merge-streams'
 
-await mergeStreamsFromUrls('CSV', urls, outputStream)
-await mergeStreamsFromUrls('JSON_ARRAY', urls, outputStream)
-await mergeStreamsFromUrls('ARROW_STREAM', urls, outputStream)
+await mergeStreamsFromUrls('CSV', { urls, output })
+await mergeStreamsFromUrls('JSON_ARRAY', { urls, output })
+await mergeStreamsFromUrls('ARROW_STREAM', { urls, output })
 ```
 
-### Options
+### With AbortSignal
 
 ```ts
 const controller = new AbortController()
 
-await mergeCsvFromUrls(urls, output, { signal: controller.signal })
+await mergeStreamsFromUrls('CSV', {
+  urls,
+  output,
+  signal: controller.signal,
+})
 
 // Cancel anytime
 controller.abort()
 ```
+
+### Stream-based (for custom input sources)
+
+```ts
+import { mergeStreams, mergeCsv, mergeJson, mergeArrow } from '@bitofsky/merge-streams'
+
+// Using unified API
+await mergeStreams('CSV', { inputs, output })
+
+// Or use format-specific functions directly
+await mergeCsv({ inputs, output, signal })
+await mergeJson({ inputs, output, signal })
+await mergeArrow({ inputs, output, signal })
+```
+
+Inputs can be:
+- `Readable` streams directly
+- Sync factories: `() => Readable`
+- Async factories: `() => Promise<Readable>` (recommended for lazy fetching)
 
 ---
 
@@ -120,27 +143,25 @@ controller.abort()
 ## Types
 
 ```ts
-import { Readable, Writable } from 'node:stream'
+import type { Readable, Writable } from 'node:stream'
 
 type MergeFormat = 'ARROW_STREAM' | 'CSV' | 'JSON_ARRAY'
 type InputSource = Readable | (() => Readable) | (() => Promise<Readable>)
 
 interface MergeStreamsOptions {
+  inputs: InputSource[]
+  output: Writable
   signal?: AbortSignal
 }
 
 function mergeStreams(
   format: MergeFormat,
-  inputs: InputSource[],
-  output: Writable,
-  options?: MergeStreamsOptions
+  options: MergeStreamsOptions
 ): Promise<void>
 
 function mergeStreamsFromUrls(
   format: MergeFormat,
-  urls: string[],
-  output: Writable,
-  options?: MergeStreamsOptions
+  options: { urls: string[]; output: Writable; signal?: AbortSignal }
 ): Promise<void>
 ```
 

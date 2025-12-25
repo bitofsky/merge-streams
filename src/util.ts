@@ -1,6 +1,16 @@
-import http from 'node:http'
+import type { Writable } from 'node:stream'
+import type { InputSource } from './types.js'
 import { once } from 'node:events'
-import { Readable, Writable } from 'node:stream'
+import { Readable } from 'node:stream'
+
+export function assertNonEmptyArray(inputs: unknown[], label: string): void {
+  if (!Array.isArray(inputs) || inputs.length === 0)
+    throw new Error(`[${label}] inputs must be a non-empty array`)
+}
+
+export function throwIfAborted(signal: AbortSignal | undefined, label: string): void {
+  if (signal?.aborted) throw new Error(`[${label}] Aborted`)
+}
 
 export function isHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value)
@@ -36,7 +46,7 @@ export async function openUrlAsReadable(
     throw new Error(`${label} fetch is not available`)
   }
 
-  const res = await fetch(url, { method: 'GET', redirect: 'follow', signal })
+  const res = await fetch(url, { method: 'GET', redirect: 'follow', ...(signal && { signal }) })
   if (!res.ok) throw new Error(`${label} Failed to fetch '${url}': ${res.status} ${res.statusText}`)
 
   const body = toNodeReadable(res.body, label)
@@ -94,8 +104,6 @@ export async function* readUtf8Lines(src: Readable): AsyncGenerator<string> {
   }
 }
 
-export type InputSource = Readable | (() => Readable) | (() => Promise<Readable>)
-
 /**
  * Normalize input sources to readable streams.
  * Supports: Readable, sync factory, async factory
@@ -109,49 +117,4 @@ export async function resolveInputStream(source: InputSource): Promise<Readable>
     return result instanceof Promise ? await result : result
   }
   throw new Error('[merge-streams] Invalid input source')
-}
-
-/**
- * Create a local HTTP server for testing purposes.
- */
-export async function createLocalHttpServer(
-  routes: Map<string, string | Buffer>,
-  options: {
-    host?: string
-    contentType?: string
-  } = {},
-): Promise<{
-  baseUrl: string
-  server: http.Server
-  close: () => Promise<void>
-}> {
-  const host = options.host ?? '127.0.0.1'
-  const contentType = options.contentType ?? 'text/plain; charset=utf-8'
-
-  const server = http.createServer((req, res) => {
-    const body = routes.get(req.url ?? '')
-    if (!body) {
-      res.statusCode = 404
-      res.end('not found')
-      return
-    }
-
-    res.statusCode = 200
-    res.setHeader('content-type', contentType)
-    res.end(body)
-  })
-
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject)
-    server.listen(0, host, () => resolve())
-  })
-
-  const addr = server.address()
-  if (!addr || typeof addr === 'string') throw new Error('Unexpected server address')
-
-  return {
-    baseUrl: `http://${host}:${addr.port}`,
-    server,
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
-  }
 }

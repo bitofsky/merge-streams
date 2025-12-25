@@ -1,9 +1,11 @@
-import { Readable, Writable } from 'node:stream'
+import type { Readable, Writable } from 'node:stream'
+import type { MergeOptions } from './types.js'
 import {
+  assertNonEmptyArray,
   endWritable,
-  writeToWritable,
-  type InputSource,
   resolveInputStream,
+  throwIfAborted,
+  writeToWritable,
 } from './util.js'
 
 function isWhitespaceChar(value: string): boolean {
@@ -14,7 +16,7 @@ async function streamJsonArrayContent(
   src: Readable,
   output: Writable,
   state: { outputHasContent: boolean },
-  options: { signal?: AbortSignal },
+  signal?: AbortSignal,
 ): Promise<boolean> {
   src.setEncoding('utf8')
 
@@ -38,11 +40,11 @@ async function streamJsonArrayContent(
   }
 
   for await (const chunk of src) {
-    if (options.signal?.aborted) throw new Error('[mergeJson] Aborted')
+    throwIfAborted(signal, 'mergeJson')
 
     const text = String(chunk)
     for (let i = 0; i < text.length; i += 1) {
-      const ch = text[i]
+      const ch = text[i]!
 
       if (!started) {
         if (isWhitespaceChar(ch)) continue
@@ -53,7 +55,7 @@ async function streamJsonArrayContent(
       }
 
       if (finished) {
-        if (!isWhitespaceChar(ch)) {
+        if (!isWhitespaceChar(ch!)) {
           throw new Error('[mergeJson] Unexpected data after JSON array end')
         }
         continue
@@ -100,10 +102,6 @@ async function streamJsonArrayContent(
   return inputHasContent
 }
 
-export interface MergeJsonOptions {
-  signal?: AbortSignal
-}
-
 /**
  * Merge multiple JSON array streams into a single JSON array stream.
  *
@@ -112,30 +110,21 @@ export interface MergeJsonOptions {
  * - Writes '[' once, then streams array contents from each input
  * - For each input, strips the outer '[' and ']' and concatenates elements
  * - Inserts commas between inputs when needed
- *
- * @param inputs - Array of Readable streams or factory functions that return Readable streams
- * @param output - Writable stream for the merged output
- * @param options - Optional settings (e.g., AbortSignal)
  */
-export async function mergeJson(
-  inputs: InputSource[],
-  output: Writable,
-  options: MergeJsonOptions = {},
-): Promise<void> {
-  if (!Array.isArray(inputs) || inputs.length === 0)
-    throw new Error('[mergeJson] inputs must be a non-empty array')
+export async function mergeJson({ inputs, output, signal }: MergeOptions): Promise<void> {
+  assertNonEmptyArray(inputs, 'mergeJson')
 
   const state = { outputHasContent: false }
   await writeToWritable(output, '[')
 
   for (let i = 0; i < inputs.length; i += 1) {
-    if (options.signal?.aborted) throw new Error('[mergeJson] Aborted')
+    throwIfAborted(signal, 'mergeJson')
 
-    const src = await resolveInputStream(inputs[i])
-    await streamJsonArrayContent(src, output, state, options)
+    const input = inputs[i]!
+    const src = await resolveInputStream(input)
+    await streamJsonArrayContent(src, output, state, signal)
   }
 
   await writeToWritable(output, ']')
   await endWritable(output)
 }
-

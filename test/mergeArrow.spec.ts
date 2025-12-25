@@ -3,13 +3,11 @@ import fsp from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
-
 import { RecordBatchReader, RecordBatchStreamWriter, Table, Utf8, vectorFromArray } from 'apache-arrow'
 import { describe, it, expect } from 'vitest'
-
 import { mergeArrow } from '../src/mergeArrow.js'
 import { mergeStreamsFromUrls } from '../src/mergeStreams.js'
-import { createLocalHttpServer } from '../src/util.js'
+import { createLocalHttpServer } from './testUtil.js'
 
 async function countArrowStreamRows(src: Readable | NodeJS.ReadableStream): Promise<number> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,8 +53,8 @@ describe('mergeArrow (Readable[] -> Writable)', () => {
     try {
       // Use async factory functions
       const dst = fs.createWriteStream(outPath)
-      await mergeArrow(
-        [
+      await mergeArrow({
+        inputs: [
           async () => {
             const res = await fetch(`${baseUrl}/chunk0.arrow`)
             return Readable.fromWeb(res.body as any)
@@ -66,8 +64,8 @@ describe('mergeArrow (Readable[] -> Writable)', () => {
             return Readable.fromWeb(res.body as any)
           },
         ],
-        dst,
-      )
+        output: dst,
+      })
 
       const src = fs.createReadStream(outPath)
       const rows = await countArrowStreamRows(src)
@@ -112,7 +110,7 @@ describe('mergeStreamsFromUrls ARROW_STREAM (http URLs -> Writable)', () => {
       try {
         const urls = [`${baseUrl}/chunk0.arrow`, `${baseUrl}/chunk1.arrow`]
         const dst = fs.createWriteStream(outPath)
-        await mergeStreamsFromUrls('ARROW_STREAM', urls, dst)
+        await mergeStreamsFromUrls('ARROW_STREAM', { urls, output: dst })
 
         const src = fs.createReadStream(outPath)
         const rows = await countArrowStreamRows(src)
