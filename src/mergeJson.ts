@@ -3,6 +3,7 @@ import type { MergeOptions } from './types.js'
 import {
   assertNonEmptyArray,
   endWritable,
+  ProgressTracker,
   resolveInputStream,
   throwIfAborted,
   writeToWritable,
@@ -16,6 +17,7 @@ async function streamJsonArrayContent(
   src: Readable,
   output: Writable,
   state: { outputHasContent: boolean },
+  tracker: ProgressTracker,
   signal?: AbortSignal,
 ): Promise<boolean> {
   src.setEncoding('utf8')
@@ -31,11 +33,15 @@ async function streamJsonArrayContent(
   const flush = async () => {
     if (!buffer) return
     if (!inputHasContent) {
-      if (state.outputHasContent) await writeToWritable(output, ',')
+      if (state.outputHasContent) {
+        await writeToWritable(output, ',')
+        tracker.addBytes(0, 1)
+      }
       inputHasContent = true
       state.outputHasContent = true
     }
     await writeToWritable(output, buffer)
+    tracker.addBytes(0, Buffer.byteLength(buffer))
     buffer = ''
   }
 
@@ -43,6 +49,8 @@ async function streamJsonArrayContent(
     throwIfAborted(signal, 'mergeJson')
 
     const text = String(chunk)
+    tracker.addBytes(Buffer.byteLength(text), 0)
+
     for (let i = 0; i < text.length; i += 1) {
       const ch = text[i]!
 
@@ -111,20 +119,26 @@ async function streamJsonArrayContent(
  * - For each input, strips the outer '[' and ']' and concatenates elements
  * - Inserts commas between inputs when needed
  */
-export async function mergeJson({ inputs, output, signal }: MergeOptions): Promise<void> {
+export async function mergeJson(options: MergeOptions): Promise<void> {
+  const { inputs, output, signal } = options
   assertNonEmptyArray(inputs, 'mergeJson')
 
+  const tracker = new ProgressTracker(options)
   const state = { outputHasContent: false }
   await writeToWritable(output, '[')
+  tracker.addBytes(0, 1)
 
   for (let i = 0; i < inputs.length; i += 1) {
     throwIfAborted(signal, 'mergeJson')
+    if (i > 0) tracker.nextInput()
 
     const input = inputs[i]!
     const src = await resolveInputStream(input)
-    await streamJsonArrayContent(src, output, state, signal)
+    await streamJsonArrayContent(src, output, state, tracker, signal)
   }
 
   await writeToWritable(output, ']')
+  tracker.addBytes(0, 1)
+  tracker.flush()
   await endWritable(output)
 }

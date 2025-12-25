@@ -55,6 +55,7 @@ Now my MCP client gets one URL. Done.
 - **ARROW_STREAM**: Merges Arrow IPC streams batch-by-batch (doesn't just byte-concat)
 - **Memory-efficient**: Streaming-based, never loads entire files into memory
 - **AbortSignal support**: Cancel mid-stream when needed
+- **Progress tracking**: Monitor merge progress with byte-level granularity
 
 ---
 
@@ -109,6 +110,18 @@ await mergeStreamsFromUrls('CSV', {
 controller.abort()
 ```
 
+### With Progress Tracking
+
+```ts
+await mergeStreamsFromUrls('CSV', {
+  urls,
+  output,
+  onProgress: ({ inputIndex, totalInputs, inputedBytes, mergedBytes }) => {
+    console.log(`Processing ${inputIndex + 1}/${totalInputs}: ${inputedBytes} bytes read, ${mergedBytes} bytes merged`)
+  },
+})
+```
+
 ### Stream-based (for custom input sources)
 
 ```ts
@@ -148,20 +161,29 @@ import type { Readable, Writable } from 'node:stream'
 type MergeFormat = 'ARROW_STREAM' | 'CSV' | 'JSON_ARRAY'
 type InputSource = Readable | (() => Readable) | (() => Promise<Readable>)
 
-interface MergeStreamsOptions {
+interface MergeOptions {
   inputs: InputSource[]
   output: Writable
   signal?: AbortSignal
+  onProgress?: (progress: MergeOptionsProgress) => void
+  progressIntervalMs?: number  // Throttle interval (default: 1000, 0 = no throttle)
+}
+
+interface MergeOptionsProgress {
+  inputIndex: number    // Index of the input being processed
+  totalInputs: number   // Total number of inputs
+  inputedBytes: number  // Total bytes read from all inputs
+  mergedBytes: number   // Total bytes written to output
 }
 
 function mergeStreams(
   format: MergeFormat,
-  options: MergeStreamsOptions
+  options: MergeOptions
 ): Promise<void>
 
 function mergeStreamsFromUrls(
   format: MergeFormat,
-  options: { urls: string[]; output: Writable; signal?: AbortSignal }
+  options: { urls: string[]; output: Writable; signal?: AbortSignal; onProgress?: (progress: MergeOptionsProgress) => void; progressIntervalMs?: number }
 ): Promise<void>
 ```
 

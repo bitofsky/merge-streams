@@ -1,7 +1,7 @@
 import type { Writable } from 'node:stream'
-import type { InputSource } from './types.js'
+import type { InputSource, MergeOptions, MergeOptionsProgress } from './types.js'
 import { once } from 'node:events'
-import { Readable } from 'node:stream'
+import { Readable, Transform } from 'node:stream'
 
 export function assertNonEmptyArray(inputs: unknown[], label: string): void {
   if (!Array.isArray(inputs) || inputs.length === 0)
@@ -117,4 +117,75 @@ export async function resolveInputStream(source: InputSource): Promise<Readable>
     return result instanceof Promise ? await result : result
   }
   throw new Error('[merge-streams] Invalid input source')
+}
+
+/**
+ * Create a Transform stream that counts bytes passing through.
+ */
+export function createByteCounter(onBytes: (n: number) => void): Transform {
+  return new Transform({
+    transform(chunk, _enc, cb) {
+      onBytes(Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(String(chunk)))
+      cb(null, chunk)
+    }
+  })
+}
+
+/**
+ * Progress tracker with configurable throttling interval.
+ */
+export class ProgressTracker {
+  private inputIndex = 0
+  private inputedBytes = 0
+  private mergedBytes = 0
+  private lastEmit = 0
+  private readonly totalInputs: number
+  private readonly onProgress: ((p: MergeOptionsProgress) => void) | undefined
+  private readonly intervalMs: number
+
+  constructor({ inputs, onProgress, progressIntervalMs = 1000 }: MergeOptions) {
+    this.totalInputs = inputs.length
+    this.onProgress = onProgress
+    this.intervalMs = progressIntervalMs
+  }
+
+  addBytes(input: number, merged: number): void {
+    if (!this.onProgress)
+      return
+    this.inputedBytes += input
+    this.mergedBytes += merged
+    this.maybeEmit()
+  }
+
+  nextInput(): void {
+    if (!this.onProgress)
+      return
+    this.inputIndex++
+    this.maybeEmit()
+  }
+
+  flush(): void {
+    this.emit()
+  }
+
+  private maybeEmit(): void {
+    if (!this.onProgress)
+      return
+    if (this.intervalMs === 0)
+      return this.emit()
+    const now = Date.now()
+    if (now - this.lastEmit >= this.intervalMs) this.emit()
+  }
+
+  private emit(): void {
+    if (!this.onProgress)
+      return
+    this.lastEmit = Date.now()
+    this.onProgress({
+      inputIndex: this.inputIndex,
+      totalInputs: this.totalInputs,
+      inputedBytes: this.inputedBytes,
+      mergedBytes: this.mergedBytes
+    })
+  }
 }

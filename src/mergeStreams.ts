@@ -27,7 +27,7 @@ export async function mergeStreams(format: MergeFormat, options: MergeOptions): 
  *
  * Convenience wrapper around mergeStreams that fetches from http(s) URLs.
  */
-export async function mergeStreamsFromUrls(format: MergeFormat, { urls, ...options }: MergeUrlsOptions,): Promise<void> {
+export async function mergeStreamsFromUrls(format: MergeFormat, { urls, ...options }: MergeUrlsOptions): Promise<void> {
   if (!Array.isArray(urls) || urls.length === 0)
     throw new Error('[mergeStreamsFromUrls] urls must be a non-empty array')
 
