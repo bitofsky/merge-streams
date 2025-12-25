@@ -24,7 +24,8 @@ export async function mergeArrow({ inputs, output, signal }: MergeOptions): Prom
   async function* batches() {
     for (let i = 0; i < inputs.length; i += 1) {
       throwIfAborted(signal, 'mergeArrow')
-      const src = await resolveInputStream(inputs[i])
+      const input = inputs[i]!
+      const src = await resolveInputStream(input)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reader = await RecordBatchReader.from(src as any)

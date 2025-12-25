@@ -25,7 +25,8 @@ export async function mergeCsv({ inputs, output, signal }: MergeOptions): Promis
   for (let i = 0; i < inputs.length; i += 1) {
     throwIfAborted(signal, 'mergeCsv')
 
-    const src = await resolveInputStream(inputs[i])
+    const input = inputs[i]!
+    const src = await resolveInputStream(input)
     const lines = readUtf8Lines(src)
     const head = await lines.next()
 

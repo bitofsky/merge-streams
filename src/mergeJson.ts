@@ -44,7 +44,7 @@ async function streamJsonArrayContent(
 
     const text = String(chunk)
     for (let i = 0; i < text.length; i += 1) {
-      const ch = text[i]
+      const ch = text[i]!
 
       if (!started) {
         if (isWhitespaceChar(ch)) continue
@@ -55,7 +55,7 @@ async function streamJsonArrayContent(
       }
 
       if (finished) {
-        if (!isWhitespaceChar(ch)) {
+        if (!isWhitespaceChar(ch!)) {
           throw new Error('[mergeJson] Unexpected data after JSON array end')
         }
         continue
@@ -120,7 +120,8 @@ export async function mergeJson({ inputs, output, signal }: MergeOptions): Promi
   for (let i = 0; i < inputs.length; i += 1) {
     throwIfAborted(signal, 'mergeJson')
 
-    const src = await resolveInputStream(inputs[i])
+    const input = inputs[i]!
+    const src = await resolveInputStream(input)
     await streamJsonArrayContent(src, output, state, signal)
   }
 

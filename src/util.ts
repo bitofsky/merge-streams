@@ -46,7 +46,7 @@ export async function openUrlAsReadable(
     throw new Error(`${label} fetch is not available`)
   }
 
-  const res = await fetch(url, { method: 'GET', redirect: 'follow', signal })
+  const res = await fetch(url, { method: 'GET', redirect: 'follow', ...(signal && { signal }) })
   if (!res.ok) throw new Error(`${label} Failed to fetch '${url}': ${res.status} ${res.statusText}`)
 
   const body = toNodeReadable(res.body, label)
